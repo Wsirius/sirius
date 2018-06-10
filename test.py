@@ -115,6 +115,23 @@ pygame.display.set_caption('RaspiRobot')
 pygame.mouse.set_visible(0)
 
 dist = 0
+state_on=0
+
+
+def go(keys):
+    if keys[pygame.K_UP]:
+        setMotor(CH1, 100, FORWARD)
+    if keys[pygame.K_DOWN]:
+        setMotor(CH1, 100, BACKWORD)
+    if keys[pygame.K_LEFT]:
+        setMotor(CH2, 100, FORWARD)
+    if keys[pygame.K_RIGHT]:
+        setMotor(CH2, 100, BACKWORD)
+
+def stop():
+    setMotor(CH1, 80, STOP)
+    setMotor(CH2, 80, STOP)
+
 
 while True:
     for event in pygame.event.get():
@@ -122,10 +139,7 @@ while True:
         	GPIO.cleanup()
 		sys.exit()
 	if event.type == KEYUP:
-                #모터 채널 0,속도 80, 멈춤
-        	setMotor(CH1, 80, STOP)
-                #모터 채널 1,속도 80, 멈춤
-		setMotor(CH2, 80, STOP)
+                stop()
 		reading = analog_read(0)
                 #전압 값 계산, 몇 V인지
 		voltage = reading * 3.3 / 1024
@@ -134,17 +148,12 @@ while True:
     dist = analog_read(0)
     print(dist)
     print("\n")
+    #핀의 값을 받아서 state_on 상태에 입력
+    state_on = GPIO.input()
 
     keys = pygame.key.get_pressed()
-    #방향키 UP 이면 모터 채널 0,속도 100, 앞으로
-    if keys[pygame.K_UP]:
-	setMotor(CH1, 100, FORWARD)
-    #방향키 DOWN 이면 모터 채널 0,속도 100, 뒤로
-    if keys[pygame.K_DOWN]:
-	setMotor(CH1, 100, BACKWORD)
-    #방향키 LEFT 이면 모터 채널 1,속도 100, 앞으로
-    if keys[pygame.K_LEFT]:
-	setMotor(CH2, 100, FORWARD)
-    #방향키 RIGHT 이면 모터 채널 1,속도 100, 뒤로
-    if keys[pygame.K_RIGHT]:
-	setMotor(CH2, 100, BACKWORD)
+    if state_on:
+        stop()
+    else:
+        go()
+    
