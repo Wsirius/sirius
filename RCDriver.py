@@ -114,7 +114,7 @@ dista = 0
 def auto_pilot(autopilot, dist):
 	if autopilot:
 		setMotor(CH1, 100, FORWARD)
-		if dist < 750 & dist > 600:
+		if dist < 750 AND dist > 600:
 			setMotor(CH2, 100, FORWARD)
 			sleep(10)
 			setMotor(CH2, 100, BACKWARD)
