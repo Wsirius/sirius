@@ -5,7 +5,7 @@ import RPi.GPIO as GPIO
 import spidev
 from time import sleep
 import pygame
-import sys
+import sys, os
 from pygame.locals import *
 
 # 모터 상태
@@ -88,9 +88,9 @@ spi.open(0,0)
 spi.max_speed_hz=1000000
 
 def analog_read(channel):
-	r = spi.xfer2([1,(8 + channel) <<  4, 0])
-	adc_out = ((r[1]&3) << 8) + r[2]
-	return adc_out
+        r = spi.xfer2([1,(8 + channel) <<  4, 0])
+        adc_out = ((r[1]&3) << 8) + r[2]
+        return adc_out
 
 
 #모터 핀 설정
@@ -107,74 +107,152 @@ screen = pygame.display.set_mode((640, 480))
 pygame.display.set_caption('RaspiRobot')
 pygame.mouse.set_visible(0)
 
-autopilot = 0;
+isAuto = 0
 dist = 0
-dista = 0
 
-def auto_pilot(autopilot, dist):
-	if autopilot:
-		setMotor(CH1, 100, FORWARD)
-		if dist < 750 AND dist > 600:
-			setMotor(CH2, 100, FORWARD)
-			sleep(10)
-			setMotor(CH2, 100, BACKWARD)
-			sleep(10)
-			setMotor(CH2, 80, STOP)
+setMotor(CH2, 100, FORWARD)
+sleep(0.1)
+setMotor(CH2, 100, BACKWORD)
+sleep(0.1)
+setMotor(CH2, 80, STOP)
+
+def ABS():
+        for i in range(0,10):
+                setMotor(CH1, 100, BACKWORD)
+                sleep(0.05)
+                setMotor(CH1, 100, STOP)
+                sleep(0.01)
+
+def auto_pilot(dist):
+        print(dist)
+        dist = analog_read(0)
+        setMotor(CH1, 100, FORWARD)
+        sleep(0.005)
+        setMotor(CH1, 80, STOP)
+        sleep(0.005)
+        dist = analog_read(0)
+        if dist < 1000 and dist > 950:
+                ABS()
+                setMotor(CH1, 100, BACKWORD)
+                setMotor(CH2, 100, FORWARD)
+                sleep(0.5)
+                setMotor(CH2, 80, STOP)
+                sleep(0.1)
+                setMotor(CH1, 100, FORWARD)
+##
+def rightTurn45Degree:
+        for i in range(0, 1100000):
+                setMotor(CH1, 80, FORWARD) #RIGHT LEFT?
+                setMotor(CH2, 80, FORWARD)
+        setMotor(CH1, 80, STOP)
+        setMotor(CH2, 80, STOP)
+
+def leftTurn45Degree:
+        for i in range(0, 1100000):
+                setMotor(CH1, 80, BACKWARD)
+                setMotor(CH2, 80, FORWARD)
+        setMotor(CH1, 80, STOP)
+        setMotor(CH2, 80, STOP)
+
+def check_area:
+        dist1 = analog_read(2) #need different sensor values
+        dist2 = analog_read(4)
+
+        if (dist1>50) && (dist2>50):
+                return true
+        else:
+                return false
+def check_area2:
+        dist1 = analog_read(0)
+        dist2 = analog_read(0)
+
+        if (dist1>20) && (dist2>50):
+                return true
+        else:
+                return false
+
+
+def moveForwardforParking:
+        dist1 = analog_read(0)
+        dist2 = analog_read(0)
+
+        if (dist1<50) && (dist2>50):
+                setMotor(CH1, 80, STOP)
+                setMotor(CH2, 80, STOP)
+                return false
+        else:
+                setMotor(CH2, 80, FORWARD)
+                return true
+
+def moveBackwarkForParking:
+        dist1 = analog_read(0)
+
+        if dist1 <30:
+                setMotor(CH1, 80, STOP)
+                return false
+        else:
+                setMotor(CH1, 80, FORWARD)
+                return true
+
+#sensor number
+def auto_park(dist):
+        if check_area:
+                while moveForwardforParking:
+                if check_area2:
+                        rightTurn45Degree()
+                        setMotor(CH1, 80, BACKWARD)
+                        sleep(0.7)
+                        rightTurn45Degree()
+                        setMotor(CH1, 80, BACKWARD)
+                        sleep(0.4)
+                        setMotor(CH1, 80, STOP)
+                        setMotor(CH2, 80, STOP)
+        else:
+                print("cannot park here")
+
 
 while True:
-    for event in pygame.event.get():
-        if event.type == QUIT:
-        	GPIO.cleanup()
-		sys.exit()
-	if event.type == KEYUP:
-        	setMotor(CH1, 80, STOP)
-		setMotor(CH2, 80, STOP)
-		reading = analog_read(0)
-		voltage = reading * 3.3 / 1024
-		#print("R = %d \t V = %f" %(reading, voltage))
+        while isAuto:
+                dist = analog_read(0)
+                for event in pygame.event.get():
+                    if event.type == QUIT:
+                        GPIO.cleanup()
+                        sys.exit()
+                    if event.type == KEYDOWN:
+                        if event.key == pygame.K_s:
+                            isAuto = 0
+                            break
 
-    dist = analog_read(0)
-    dista = analog_read(2)
-    auto_pilot(autopilot, dist)
+                auto_pilot(dist)
 
-    if dist > 900:
-	while True:
-		dist = analog_read(0)
-		for event in pygame.event.get():
-        		if event.type == QUIT:
-                		GPIO.cleanup()
-                		sys.exit()
-        		if event.type == KEYUP:
-				if event.key == pygame.K_SPACE:
-					if autopilot:
-						autopilot = 0
+        print(dist)
+        for event in pygame.event.get():
+                if event.type == QUIT:
+                        GPIO.cleanup()
+                        sys.exit()
+                if event.type == KEYUP:
+                        if event.key == pygame.K_a:
+                                isAuto = 1
+                        if event.key == pygame.K_e:
+                                pygame.quit()
+                                sys.exit()
+                                #os.system('sudo shutdown -h now')
 
-					autopilot = 1
-					
-                		setMotor(CH1, 80, STOP)
-                		setMotor(CH2, 80, STOP)
+                        setMotor(CH1, 80, STOP)
+                        setMotor(CH2, 80, STOP)
 
-		if dist < 750:
-			setMotor(CH1, 80, STOP)
-			break
-		if dist > 750:
-			keys = pygame.key.get_pressed()
-    			if keys[pygame.K_UP]:
-        			setMotor(CH1, 100, FORWARD)
-    			if keys[pygame.K_DOWN]:
-        			setMotor(CH1, 100, BACKWORD)
-    			if keys[pygame.K_LEFT]:
-        			setMotor(CH2, 100, FORWARD)
-    			if keys[pygame.K_RIGHT]:
-        			setMotor(CH2, 100, BACKWORD)
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_UP]:
+                setMotor(CH1, 100, FORWARD)
+        if keys[pygame.K_DOWN]:
+                setMotor(CH1, 100, BACKWORD)
+        if keys[pygame.K_LEFT]:
+                setMotor(CH2, 100, FORWARD)
+        if keys[pygame.K_RIGHT]:
+                setMotor(CH2, 100, BACKWORD)
+        if keys[pygame.K_SPACE]:
+                ABS()
 
 
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_UP]:
-	setMotor(CH1, 100, FORWARD)
-    if keys[pygame.K_DOWN]:
-	setMotor(CH1, 100, BACKWORD)
-    if keys[pygame.K_LEFT]:
-	setMotor(CH2, 100, FORWARD)
-    if keys[pygame.K_RIGHT]:
-	setMotor(CH2, 100, BACKWORD)
+
+
