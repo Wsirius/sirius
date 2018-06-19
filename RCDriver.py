@@ -190,8 +190,9 @@ def explore_space():
 	setMotor(CH1, 80, STOP)
 	print(space)
 	
-	if space < 100 and space > 80:
-		print('직각주차')
+	if space < 200 and space > 180:
+		par_parking()
+		setMotor(CH1, 80, STOP)
 
 
 
@@ -221,6 +222,8 @@ while True:
                                 pygame.quit()
                                 sys.exit()
                                 #os.system('sudo shutdown -h now')
+			if keys[pygame.K_x]:
+				explore_space()
 
                         setMotor(CH1, 80, STOP)
                         setMotor(CH2, 80, STOP)
@@ -236,8 +239,6 @@ while True:
                 setMotor(CH2, 100, BACKWORD)
         if keys[pygame.K_SPACE]:
                 ABS()
-	if keys[pygame.K_x]:
-		explore_space()
 
 
 
